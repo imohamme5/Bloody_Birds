@@ -5,47 +5,171 @@ using Sce.PlayStation.Core;
 using Sce.PlayStation.Core.Environment;
 using Sce.PlayStation.Core.Graphics;
 using Sce.PlayStation.Core.Input;
-using Sce.PlayStation.Core.HighLevel;
+
+using Sce.PlayStation.HighLevel.GameEngine2D;
+using Sce.PlayStation.HighLevel.GameEngine2D.Base;
+using Sce.PlayStation.HighLevel.UI;
+
+//enum to control game state
+enum gS
+{
+	//Start screen
+	START = 0,
+	
+	//Screen where main game takes place
+	GAME = 1,
+	
+	//Post game score screen
+	SCORE = 2,
+	
+	//High Score table
+	HSCORE = 3,
+	
+	//Options Screen
+	OPTION = 4
+}
 
 namespace Bloody_Birds
 {
 	public class AppMain
 	{
-		private static GraphicsContext graphics;
+		private static Sce.PlayStation.HighLevel.GameEngine2D.Scene 	gameScene;
+		private static Sce.PlayStation.HighLevel.UI.Scene 				uiScene;
+		private static Sce.PlayStation.HighLevel.UI.Label				scoreLabel;
+		
+		private static bool 				quitGame;
+		private static GraphicsContext 		graphics;
+		private static int 					score;
+		private static int					timer;
+		private static string				scoreString;
+		private static int					state;
+		private static gS					gameState;
 		
 		public static void Main (string[] args)
 		{
+			quitGame = false;
 			Initialize ();
-
-			while (true) {
-				SystemEvents.CheckEvents ();
+			
+			//Game Loop
+			while (!quitGame) 
+			{
 				Update ();
-				Render ();
+				
+				Director.Instance.Update();
+				Director.Instance.Render();
+				UISystem.Render();
+				
+				Director.Instance.GL.Context.SwapBuffers();
+				Director.Instance.PostSwap();
 			}
+			//Game ended, time to clean up
 		}
 		
 		public static void Initialize ()
 		{
-			// Set up the graphics system
-			graphics = new GraphicsContext ();
-			int test = 0;
 			
+			gameState = gS.START;
+			
+			//initialise score values
+			score = 0;
+			timer = 0;
+			scoreString = score.ToString(scoreString);
+			
+			
+			Director.Initialize ();
+			UISystem.Initialize(Director.Instance.GL.Context);
+			
+			//Set game scene
+			gameScene = new Sce.PlayStation.HighLevel.GameEngine2D.Scene();
+			gameScene.Camera.SetViewFromViewport();
+			
+			//Set the ui scene.
+			uiScene = new Sce.PlayStation.HighLevel.UI.Scene();
+			Panel panel  = new Panel();
+			panel.Width  = Director.Instance.GL.Context.GetViewport().Width;
+			panel.Height = Director.Instance.GL.Context.GetViewport().Height;
+			scoreLabel = new Sce.PlayStation.HighLevel.UI.Label();
+			scoreLabel.HorizontalAlignment = HorizontalAlignment.Center;
+			scoreLabel.VerticalAlignment = VerticalAlignment.Top;
+			scoreLabel.SetPosition(
+				Director.Instance.GL.Context.GetViewport().Width/2 - scoreLabel.Width/4,
+				Director.Instance.GL.Context.GetViewport().Height*0.1f - scoreLabel.Height/2);
+			scoreLabel.Text = scoreString;
+			panel.AddChildLast(scoreLabel);
+			uiScene.RootWidget.AddChildLast(panel);
+			UISystem.SetScene(uiScene);
+			
+			//Run the scene.
+			Director.Instance.RunWithScene(gameScene, true);
 		}
 
 		public static void Update ()
 		{
-			// Query gamepad for current state
-			var gamePadData = GamePad.GetData (0);
-		}
-
-		public static void Render ()
-		{
-			// Clear the screen
-			graphics.SetClearColor (0.0f, 0.0f, 0.0f, 0.0f);
-			graphics.Clear ();
-
-			// Present the screen
-			graphics.SwapBuffers ();
+			
+			/*
+			 For now, the game is meant to advance from start > game > score > hscore > start
+			 then back through
+			 
+			 Once this works we have proof that this system for changing game screens/states works
+			 and I can then move on to menus and the scoring system in more detail
+			 
+			 */
+			
+			// check to see if screen has been touched
+			var touch = Touch.GetData (0);
+			
+			//Set scoreleval to the current value of Score
+			scoreLabel.Text = score.ToString ();
+			
+			//Timer controls how often a touch can be registered,
+			//a touch is recognised only when timer <= 0
+			if(timer > 0)
+			timer--;
+			
+			//gs.Start = Start screen
+			if(gameState == gS.START)
+			{
+				if(touch.Count > 0 && timer <= 0)
+				{
+					gameState = gS.GAME;
+					timer = 50;
+				}
+				
+			}
+			
+			//gs.GAME = main game screen
+			if(gameState == gS.GAME)
+			{
+				if(touch.Count > 0 && timer <= 0)
+				{
+					gameState = gS.SCORE;
+					timer = 50;
+				}
+				score++;
+			}
+			
+			//gs.SCORE = post defeat/victory score screen
+			if(gameState == gS.SCORE)
+			{
+				if(touch.Count > 0 && timer <= 0)
+				{
+					gameState = gS.HSCORE;
+					timer = 50;
+				}
+				
+			}
+			
+			//gs.HSCORE = end of game score screen, loops back to start screen
+			if(gameState == gS.HSCORE && timer <= 0)
+			{
+				if(touch.Count > 0)
+				{
+					gameState = gS.START;
+					timer = 50;
+					score = 0;
+				}
+				
+			}
 		}
 	}
 }
