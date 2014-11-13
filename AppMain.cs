@@ -44,6 +44,8 @@ namespace Bloody_Birds
 		private static string				scoreString;
 		private static int					state;
 		private static gS					gameState;
+		private static int[] 				scoreBoard;
+		private static int 					scoreSlotCount;
 		
 		public static void Main (string[] args)
 		{
@@ -73,6 +75,8 @@ namespace Bloody_Birds
 			//initialise score values
 			score = 0;
 			timer = 0;
+			scoreSlotCount = 5;
+			scoreBoard = new int[scoreSlotCount];
 			scoreString = score.ToString(scoreString);
 			
 			
@@ -140,12 +144,14 @@ namespace Bloody_Birds
 			//gs.GAME = main game screen
 			if(gameState == gS.GAME)
 			{
+				score++;
 				if(touch.Count > 0 && timer <= 0)
 				{
 					gameState = gS.SCORE;
 					timer = 50;
+					scoreCalc();
+					
 				}
-				score++;
 			}
 			
 			//gs.SCORE = post defeat/victory score screen
@@ -155,6 +161,10 @@ namespace Bloody_Birds
 				{
 					gameState = gS.HSCORE;
 					timer = 50;
+					for(int i = 0; i < scoreSlotCount - 1; i++)
+					{
+					Console.WriteLine(scoreBoard[i]);
+					}
 				}
 				
 			}
@@ -169,6 +179,27 @@ namespace Bloody_Birds
 					score = 0;
 				}
 				
+			}
+		}
+		
+		public static void scoreCalc()
+		{
+			for(int i = 0; i < scoreSlotCount - 1; i++)
+			{
+				int temp;
+				int temp2;
+				if(scoreBoard[i] < score)
+				{
+					temp = scoreBoard[i];
+					scoreBoard[i] = score;
+					while(i < scoreSlotCount - 1)
+					{
+						i++;
+						temp2 = scoreBoard[i];
+						scoreBoard[i] = temp;
+						temp = temp2;
+					}
+				}
 			}
 		}
 	}
