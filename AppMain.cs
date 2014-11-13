@@ -36,13 +36,13 @@ namespace Bloody_Birds
 		private static Sce.PlayStation.HighLevel.GameEngine2D.Scene 	gameScene;
 		private static Sce.PlayStation.HighLevel.UI.Scene 				uiScene;
 		private static Sce.PlayStation.HighLevel.UI.Label				scoreLabel;
+		private static Sce.PlayStation.HighLevel.UI.Label				titleLabel;
+		private static Sce.PlayStation.HighLevel.UI.Label[]				scoreBoardLabels;
 		
 		private static bool 				quitGame;
-		private static GraphicsContext 		graphics;
 		private static int 					score;
 		private static int					timer;
 		private static string				scoreString;
-		private static int					state;
 		private static gS					gameState;
 		private static int[] 				scoreBoard;
 		private static int 					scoreSlotCount;
@@ -75,7 +75,7 @@ namespace Bloody_Birds
 			//initialise score values
 			score = 0;
 			timer = 0;
-			scoreSlotCount = 5;
+			scoreSlotCount = 6;
 			scoreBoard = new int[scoreSlotCount];
 			scoreString = score.ToString(scoreString);
 			
@@ -89,18 +89,20 @@ namespace Bloody_Birds
 			
 			//Set the ui scene.
 			uiScene = new Sce.PlayStation.HighLevel.UI.Scene();
+			
+			//Setup Panel
 			Panel panel  = new Panel();
 			panel.Width  = Director.Instance.GL.Context.GetViewport().Width;
 			panel.Height = Director.Instance.GL.Context.GetViewport().Height;
-			scoreLabel = new Sce.PlayStation.HighLevel.UI.Label();
-			scoreLabel.HorizontalAlignment = HorizontalAlignment.Center;
-			scoreLabel.VerticalAlignment = VerticalAlignment.Top;
-			scoreLabel.SetPosition(
-				Director.Instance.GL.Context.GetViewport().Width/2 - scoreLabel.Width/4,
-				Director.Instance.GL.Context.GetViewport().Height*0.1f - scoreLabel.Height/2);
-			scoreLabel.Text = scoreString;
-			panel.AddChildLast(scoreLabel);
-			uiScene.RootWidget.AddChildLast(panel);
+			
+			//Setup Labels
+			scoreLabel = makeLabel(scoreLabel, panel, -300, 2);
+			titleLabel = makeLabel(titleLabel, panel, -100, 50);
+			scoreBoardLabels = new Sce.PlayStation.HighLevel.UI.Label[scoreSlotCount];
+			for(int i = 0; i < scoreSlotCount - 1; i++)
+			{
+				scoreBoardLabels[i] = makeLabel(scoreBoardLabels[i], panel, 50, i*100);
+			}
 			UISystem.SetScene(uiScene);
 			
 			//Run the scene.
@@ -117,6 +119,10 @@ namespace Bloody_Birds
 			 Once this works we have proof that this system for changing game screens/states works
 			 and I can then move on to menus and the scoring system in more detail
 			 
+			 
+			 13/11 Update
+			 The system detailed above works and a high score table has been implemented along with labels for each screen
+			 with its title on, these are not neccesarily final names/screens
 			 */
 			
 			// check to see if screen has been touched
@@ -133,6 +139,7 @@ namespace Bloody_Birds
 			//gs.Start = Start screen
 			if(gameState == gS.START)
 			{
+				titleLabel.Text = "Start Screen";
 				if(touch.Count > 0 && timer <= 0)
 				{
 					gameState = gS.GAME;
@@ -144,6 +151,7 @@ namespace Bloody_Birds
 			//gs.GAME = main game screen
 			if(gameState == gS.GAME)
 			{
+				titleLabel.Text = "Main Game Screen";
 				score++;
 				if(touch.Count > 0 && timer <= 0)
 				{
@@ -157,26 +165,33 @@ namespace Bloody_Birds
 			//gs.SCORE = post defeat/victory score screen
 			if(gameState == gS.SCORE)
 			{
+				titleLabel.Text = "Score Screen";
 				if(touch.Count > 0 && timer <= 0)
 				{
 					gameState = gS.HSCORE;
 					timer = 50;
 					for(int i = 0; i < scoreSlotCount - 1; i++)
 					{
-					Console.WriteLine(scoreBoard[i]);
+						scoreBoardLabels[i].Visible = true;
+						scoreBoardLabels[i].Text = scoreBoard[i].ToString ();
 					}
 				}
 				
 			}
 			
 			//gs.HSCORE = end of game score screen, loops back to start screen
-			if(gameState == gS.HSCORE && timer <= 0)
+			if(gameState == gS.HSCORE)
 			{
-				if(touch.Count > 0)
+				titleLabel.Text = "High Score Screen";
+				if(touch.Count > 0 && timer <= 0)
 				{
 					gameState = gS.START;
 					timer = 50;
 					score = 0;
+					for(int i = 0; i < scoreSlotCount - 1; i++)
+					{
+					scoreBoardLabels[i].Visible = false;
+					}
 				}
 				
 			}
@@ -201,6 +216,20 @@ namespace Bloody_Birds
 					}
 				}
 			}
+		}
+		
+		public static Sce.PlayStation.HighLevel.UI.Label makeLabel(Sce.PlayStation.HighLevel.UI.Label l, Panel p, int w, int h)
+		{
+			l = new Sce.PlayStation.HighLevel.UI.Label();
+			l.HorizontalAlignment = HorizontalAlignment.Center;
+			l.VerticalAlignment = VerticalAlignment.Top;
+			l.SetPosition(
+				Director.Instance.GL.Context.GetViewport().Width/2 + w,
+				Director.Instance.GL.Context.GetViewport().Height/8 + h);
+			l.Text = "";
+			p.AddChildLast(l);
+			uiScene.RootWidget.AddChildLast(p);
+			return l;
 		}
 	}
 }
