@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 using Sce.PlayStation.Core;
 using Sce.PlayStation.Core.Environment;
@@ -47,6 +48,8 @@ namespace Bloody_Birds
 		private static int[] 				scoreBoard;
 		private static int 					scoreSlotCount;
 		
+		private static string				scorePath;			
+		
 		public static void Main (string[] args)
 		{
 			quitGame = false;
@@ -78,7 +81,8 @@ namespace Bloody_Birds
 			scoreSlotCount = 6;
 			scoreBoard = new int[scoreSlotCount];
 			scoreString = score.ToString(scoreString);
-			
+			scorePath = "/Documents/HighScores.txt";
+			load (scorePath, scoreBoard);
 			
 			Director.Initialize ();
 			UISystem.Initialize(Director.Instance.GL.Context);
@@ -97,6 +101,7 @@ namespace Bloody_Birds
 			
 			//Setup Labels
 			scoreLabel = makeLabel(scoreLabel, panel, -300, 2);
+			scoreLabel.Visible = false;
 			titleLabel = makeLabel(titleLabel, panel, -100, 50);
 			scoreBoardLabels = new Sce.PlayStation.HighLevel.UI.Label[scoreSlotCount];
 			for(int i = 0; i < scoreSlotCount - 1; i++)
@@ -140,10 +145,12 @@ namespace Bloody_Birds
 			if(gameState == gS.START)
 			{
 				titleLabel.Text = "Start Screen";
+				
 				if(touch.Count > 0 && timer <= 0)
 				{
 					gameState = gS.GAME;
-					timer = 50;
+					timer = 10;
+					scoreLabel.Visible = true;
 				}
 				
 			}
@@ -170,11 +177,13 @@ namespace Bloody_Birds
 				{
 					gameState = gS.HSCORE;
 					timer = 50;
+					scoreLabel.Visible = false;
 					for(int i = 0; i < scoreSlotCount - 1; i++)
 					{
 						scoreBoardLabels[i].Visible = true;
 						scoreBoardLabels[i].Text = scoreBoard[i].ToString ();
 					}
+					save (scorePath, scoreBoard);
 				}
 				
 			}
@@ -190,7 +199,7 @@ namespace Bloody_Birds
 					score = 0;
 					for(int i = 0; i < scoreSlotCount - 1; i++)
 					{
-					scoreBoardLabels[i].Visible = false;
+						scoreBoardLabels[i].Visible = false;
 					}
 				}
 				
@@ -231,5 +240,62 @@ namespace Bloody_Birds
 			uiScene.RootWidget.AddChildLast(p);
 			return l;
 		}
+		
+		public static void save(string path, int[] scoreB)
+		{
+			byte[] result = new byte[scoreB.Length * sizeof(int)];
+			Buffer.BlockCopy(scoreB, 0, result, 0, result.Length);
+			Console.WriteLine("==SaveData()==");
+
+		    int bufferSize=sizeof(Int32)* (scoreSlotCount+1);
+		    byte[] buffer = new byte[bufferSize];
+		
+		    Int32 sum=0;
+		    for(int i=0; i<scoreSlotCount; ++i)
+		    {
+		        Console.WriteLine("ranking[i]="+scoreB[i]);
+		        Buffer.BlockCopy(scoreB, sizeof(Int32)*i, buffer, sizeof(Int32)*i, sizeof(Int32));
+		        sum+=scoreB[i];
+		    }
+		
+		    Int32 hash=sum.GetHashCode();
+		    Console.WriteLine("sum={0},hash={1}",sum,hash);
+		
+		    Buffer.BlockCopy(BitConverter.GetBytes(hash), 0, buffer, scoreSlotCount * sizeof(Int32), sizeof(Int32));
+		        	
+			
+			using (System.IO.FileStream hStream = System.IO.File.Open(@path, FileMode.Create))
+		    {
+		        hStream.SetLength((int)bufferSize);
+		        hStream.Write(buffer, 0, (int)bufferSize);
+		        hStream.Close();
+		    }
+			
+		}
+		
+		//Function to load data/scores from file
+		public static void load(string path, int[] scoreB)
+		{
+			
+
+            using (System.IO.FileStream hStream = System.IO.File.OpenRead(@path))
+			{
+                if (hStream != null) 
+				{
+                    long size = hStream.Length;
+	                byte[] buffer = new byte[size];
+	                hStream.Read(buffer, 0, (int)size);
+	
+	
+	                Int32 sum=0;
+	                for(int i=0; i<scoreSlotCount; ++i)
+	                {
+	                    Buffer.BlockCopy(buffer, sizeof(Int32)*i, scoreB, sizeof(Int32)*i,  sizeof(Int32));
+	                    Console.WriteLine("ranking[i]="+scoreB[i]);
+	                    sum+=scoreB[i];
+	                }
+                }
+            }
+         }
 	}
 }
