@@ -226,7 +226,10 @@ namespace Bloody_Birds
 				}
 			}
 		}
-		
+		public static void TestMethod()
+		{
+			
+		}
 		public static Sce.PlayStation.HighLevel.UI.Label makeLabel(Sce.PlayStation.HighLevel.UI.Label l, Panel p, int w, int h)
 		{
 			l = new Sce.PlayStation.HighLevel.UI.Label();
